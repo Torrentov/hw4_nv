@@ -1,4 +1,4 @@
-from collections import Callable
+from collections.abc import Callable
 from typing import List
 
 import hw_nv.augmentations.spectrogram_augmentations
