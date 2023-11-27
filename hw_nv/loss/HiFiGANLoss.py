@@ -63,6 +63,7 @@ class HiFiGANLoss(nn.Module):
                        msd_features_generated, msd_features_ground_truth,
                        **batch):
         mel_loss = self._mel_loss(audio_generated, mel_ground_truth)
+        mel_loss = self.mel_loss_lambda * mel_loss
 
         generator_mpd_loss = self._generator_loss(mpd_generated)
         generator_msd_loss = self._generator_loss(msd_generated)
@@ -73,10 +74,9 @@ class HiFiGANLoss(nn.Module):
         msd_feature_matching_loss = self._feature_matching_loss(msd_features_generated,
                                                                 msd_features_ground_truth)
         feature_matching_loss = msd_feature_matching_loss + mpd_feature_matching_loss
+        feature_matching_loss = self.fm_loss_lambda * feature_matching_loss
 
-        total_generator_loss = generator_discriminator_loss + \
-                               self.fm_loss_lambda * feature_matching_loss + \
-                               self.mel_loss_lambda * mel_loss
+        total_generator_loss = generator_discriminator_loss + feature_matching_loss + mel_loss
 
         return {
             "generator_loss": total_generator_loss,
