@@ -78,9 +78,11 @@ class BaseDataset(Dataset):
                 self.config_parser["preprocessing"]["spectrogram"],
                 preprocessing,
             )
-
             if self.random_crop is not None:
-                audio_tensor_wave = self.random_crop(audio_tensor_wave)
+                try:
+                    audio_tensor_wave = self.random_crop(audio_tensor_wave)
+                except ValueError:
+                    pass
 
             audio_tensor_spec = wave2spec(audio_tensor_wave)
             if self.spec_augs is not None:

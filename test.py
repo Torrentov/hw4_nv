@@ -48,6 +48,8 @@ def main(config, out_dir):
                 batch.update(output)
             else:
                 batch["audio_generated"] = output
+            # print(batch["audio_generated"].shape)
+            # print(batch["audio_gt"].shape)
             batch["audio_generated"] = batch["audio_generated"].squeeze(0)
             torchaudio.save(out_dir + str(batch_num) + ".wav",
                             src=batch["audio_generated"],
