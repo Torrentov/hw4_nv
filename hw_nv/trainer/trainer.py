@@ -185,12 +185,8 @@ class Trainer(BaseTrainer):
             if self.generator_lr_scheduler is not None:
                 self.generator_lr_scheduler.step()
         else:
-            outputs = self.model(**batch)
-            if type(outputs) is dict:
-                batch.update(outputs)
-            else:
-                batch["audio_generated"] = outputs
-
+            outputs = self.model.forward_discriminator(save_data=True, **batch)
+            batch.update(outputs)
             batch["discriminator_loss"] = self.criterion.discriminator_loss(**batch)
             batch["generator_loss"] = self.criterion.generator_loss(**batch)
 
@@ -227,7 +223,8 @@ class Trainer(BaseTrainer):
                 )
             self.writer.set_step(epoch * self.len_epoch, part)
             self._log_scalars(self.evaluation_metrics)
-            self._log_audio(batch)
+            if part == "test":
+                self._log_audio(batch)
             # self._log_predictions(**batch)
             # self._log_spectrogram(batch["spectrogram"])
 
