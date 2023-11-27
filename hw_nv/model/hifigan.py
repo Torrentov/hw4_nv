@@ -205,20 +205,26 @@ class HiFiGAN(BaseModel):
         self.mpd = MultiPeriodDiscriminator()
         self.msd = MultiScaleDiscriminator()
 
-    def forward(self, mel, audio_gt=None, **batch):
+    def forward_generator(self, mel, **batch):
         audio_gen = self.generator(mel)
-        if audio_gt is None:
-            return {"audio_generated": audio_gen}
-        if audio_gen.size(2) > audio_gt.size(2):
-            padding_size = audio_gen.size(2) - audio_gt.size(2)
+        return {"audio_generated": audio_gen,
+                "mel_ground_truth": mel}
+
+    def forward_discriminator(self, audio_generated, audio_gt, save_data=False, **batch):
+        if audio_generated.size(2) > audio_gt.size(2):
+            padding_size = audio_generated.size(2) - audio_gt.size(2)
             audio_gt = F.pad(audio_gt, (0, padding_size))
-        if audio_gt.size(2) < audio_gen.size(2):
-            padding_size = audio_gt.size(2) - audio_gen.size(2)
-            audio_gen = F.pad(audio_gen, (0, padding_size))
-        mpd_out_gen, mpd_feat_gen, mpd_out_gt, mpd_feat_gt = self.mpd(audio_gen, audio_gt)
-        msd_out_gen, msd_feat_gen, msd_out_gt, msd_feat_gt = self.msd(audio_gen, audio_gt)
+        if audio_gt.size(2) < audio_generated.size(2):
+            padding_size = audio_gt.size(2) - audio_generated.size(2)
+            audio_generated = F.pad(audio_generated, (0, padding_size))
+        if save_data:
+            mpd_out_gen, mpd_feat_gen, mpd_out_gt, mpd_feat_gt = self.mpd(audio_generated.detach(), audio_gt)
+            msd_out_gen, msd_feat_gen, msd_out_gt, msd_feat_gt = self.msd(audio_generated.detach(), audio_gt)
+        else:
+            mpd_out_gen, mpd_feat_gen, mpd_out_gt, mpd_feat_gt = self.mpd(audio_generated, audio_gt)
+            msd_out_gen, msd_feat_gen, msd_out_gt, msd_feat_gt = self.msd(audio_generated, audio_gt)
         result = {
-            "audio_generated": audio_gen,
+            "audio_generated": audio_generated,
             "mpd_generated": mpd_out_gen,
             "mpd_features_generated": mpd_feat_gen,
             "mpd_ground_truth": mpd_out_gt,
@@ -226,10 +232,15 @@ class HiFiGAN(BaseModel):
             "msd_generated": msd_out_gen,
             "msd_features_generated": msd_feat_gen,
             "msd_ground_truth": msd_out_gt,
-            "msd_features_ground_truth": msd_feat_gt,
-            "mel_ground_truth": mel
+            "msd_features_ground_truth": msd_feat_gt
         }
         return result
+
+    def forward(self, mel, audio_gt=None, **batch):
+        gen = self.forward_generator(mel)
+        if audio_gt is not None:
+            return self.forward_discriminator(**gen, audio_gt=audio_gt, **batch)
+        return gen
 
     def transform_input_lengths(self, input_lengths):
         return input_lengths  # we don't reduce time dimension here
