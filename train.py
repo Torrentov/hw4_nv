@@ -73,7 +73,7 @@ def main(config):
         device=device,
         dataloaders=dataloaders,
         generator_lr_scheduler=generator_scheduler,
-        disctiminator_lr_scheduler=discriminator_scheduler,
+        discriminator_lr_scheduler=discriminator_scheduler,
         len_epoch=config["trainer"].get("len_epoch", None)
     )
 
