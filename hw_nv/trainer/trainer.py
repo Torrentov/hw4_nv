@@ -276,7 +276,7 @@ class Trainer(BaseTrainer):
             self.writer.add_scalar(f"{metric_name}", metric_tracker.avg(metric_name))
 
     def _log_audio(self, batch):
-        the_chosen_one = random.randint(0, batch['audio']['mix'].shape[0] - 1)
+        the_chosen_one = random.randint(0, batch['audio_generated'].shape[0] - 1)
 
         self.writer.add_audio('audio_generated', batch['audio_generated'][the_chosen_one, :, :], sample_rate=22050)
         self.writer.add_audio('audio_gt', batch['audio_gt'][the_chosen_one, :, :], sample_rate=22050)
