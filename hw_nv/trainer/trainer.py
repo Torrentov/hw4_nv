@@ -223,7 +223,7 @@ class Trainer(BaseTrainer):
             self.writer.set_step(epoch * self.len_epoch, part)
             self._log_scalars(self.evaluation_metrics)
             if part == "test":
-                self._log_audio(batch)
+                self._log_audio(batch, batch_idx)
             # self._log_predictions(**batch)
             # self._log_spectrogram(batch["spectrogram"])
 
@@ -307,8 +307,18 @@ class Trainer(BaseTrainer):
         for metric_name in metric_tracker.keys():
             self.writer.add_scalar(f"{metric_name}", metric_tracker.avg(metric_name))
 
-    def _log_audio(self, batch):
-        the_chosen_one = random.randint(0, batch['audio_generated'].shape[0] - 1)
+    def _log_audio(self, batch, number):
+        self.writer.add_audio(f"audio_generated_0",
+                              batch['audio_generated'][0, :, :], sample_rate=22050)
+        self.writer.add_audio(f"audio_ground_truth_0",
+                              batch['audio_gt'][0, :, :], sample_rate=22050)
 
-        self.writer.add_audio('audio_generated', batch['audio_generated'][the_chosen_one, :, :], sample_rate=22050)
-        self.writer.add_audio('audio_gt', batch['audio_gt'][the_chosen_one, :, :], sample_rate=22050)
+        self.writer.add_audio(f"audio_generated_1",
+                              batch['audio_generated'][1, :, :], sample_rate=22050)
+        self.writer.add_audio(f"audio_ground_truth_1",
+                              batch['audio_gt'][1, :, :], sample_rate=22050)
+
+        self.writer.add_audio(f"audio_generated_2",
+                              batch['audio_generated'][2, :, :], sample_rate=22050)
+        self.writer.add_audio(f"audio_ground_truth_2",
+                              batch['audio_gt'][2, :, :], sample_rate=22050)
