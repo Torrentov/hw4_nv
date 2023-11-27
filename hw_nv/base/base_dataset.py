@@ -7,6 +7,7 @@ import torch
 import torchaudio
 from torch import Tensor
 from torch.utils.data import Dataset
+from torchvision.transforms import RandomCrop
 
 from hw_nv.base.base_text_encoder import BaseTextEncoder
 from hw_nv.utils.parse_config import ConfigParser
@@ -25,11 +26,15 @@ class BaseDataset(Dataset):
             spec_augs=None,
             limit=None,
             max_audio_length=None,
+            crop_audio_length=None
     ):
         self.config_parser = config_parser
         self.wave_augs = wave_augs
         self.spec_augs = spec_augs
         self.log_spec = config_parser["preprocessing"]["log_spec"]
+        self.random_crop = None
+        if crop_audio_length is not None:
+            self.random_crop = RandomCrop((1, crop_audio_length))
 
         self._assert_index_is_valid(index)
         index = self._filter_records_from_dataset(index, max_audio_length, limit)
@@ -73,6 +78,10 @@ class BaseDataset(Dataset):
                 self.config_parser["preprocessing"]["spectrogram"],
                 preprocessing,
             )
+
+            if self.random_crop is not None:
+                audio_tensor_wave = self.random_crop(audio_tensor_wave)
+
             audio_tensor_spec = wave2spec(audio_tensor_wave)
             if self.spec_augs is not None:
                 audio_tensor_spec = self.spec_augs(audio_tensor_spec)

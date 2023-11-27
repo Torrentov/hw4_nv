@@ -45,6 +45,7 @@
           "type": "LJspeechDataset",
           "args": {
             "part": "test",
+            "max_audio_length": 20.0,
             "limit": 10
           }
         }
@@ -83,15 +84,15 @@
     }
   },
   "trainer": {
-    "epochs": 51,
+    "epochs": 2500,
     "save_dir": "saved/",
-    "save_period": 5,
+    "save_period": 10,
     "verbosity": 2,
     "monitor": "min val_total_loss",
-    "early_stop": 100,
+    "early_stop": 1000000000,
     "visualize": "wandb",
     "wandb_project": "nv_project",
-    "len_epoch": 100,
+    "len_epoch": 1000,
     "grad_norm_clip": 10
   }
 }
