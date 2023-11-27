@@ -25,20 +25,21 @@
   },
   "data": {
     "train": {
-      "batch_size": 1,
+      "batch_size": 10,
       "num_workers": 0,
       "datasets": [
         {
           "type": "LJspeechDataset",
           "args": {
             "part": "train",
-            "crop_audio_length": 25087
+            "crop_audio_length": 13055,
+            "limit": 10
           }
         }
       ]
     },
     "val": {
-      "batch_size": 1,
+      "batch_size": 10,
       "num_workers": 0,
       "datasets": [
         {
