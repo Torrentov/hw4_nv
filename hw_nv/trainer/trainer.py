@@ -1,6 +1,7 @@
 import random
 from pathlib import Path
 from random import shuffle
+import itertools
 
 import PIL
 import pandas as pd
@@ -43,15 +44,17 @@ class Trainer(BaseTrainer):
             model,
             criterion,
             metrics,
-            optimizer,
+            generator_optimizer,
+            discriminator_optimizer,
             config,
             device,
             dataloaders,
-            lr_scheduler=None,
+            generator_lr_scheduler=None,
+            discriminator_lr_scheduler=None,
             len_epoch=None,
             skip_oom=True,
     ):
-        super().__init__(model, criterion, metrics, optimizer, config, device)
+        super().__init__(model, criterion, metrics, generator_optimizer, discriminator_optimizer, config, device)
         self.skip_oom = skip_oom
         self.config = config
         self.train_dataloader = dataloaders["train"]
@@ -63,12 +66,13 @@ class Trainer(BaseTrainer):
             self.train_dataloader = inf_loop(self.train_dataloader)
             self.len_epoch = len_epoch
         self.evaluation_dataloaders = {k: v for k, v in dataloaders.items() if k != "train"}
-        self.lr_scheduler = lr_scheduler
+        self.generator_lr_scheduler = generator_lr_scheduler
+        self.discriminator_lr_scheduler = discriminator_lr_scheduler
         self.log_step = 50
 
         self.train_metrics = MetricTracker(
             *LOSS_NAMES,
-            "grad norm", *[m.name for m in self.metrics], writer=self.writer
+            "generator grad norm", "discriminator grad norm", *[m.name for m in self.metrics], writer=self.writer
         )
         self.evaluation_metrics = MetricTracker(
             *LOSS_NAMES,
@@ -84,11 +88,17 @@ class Trainer(BaseTrainer):
             batch[tensor_for_gpu] = batch[tensor_for_gpu].to(device)
         return batch
 
-    def _clip_grad_norm(self):
+    def _clip_grad_norm(self, mode):
         if self.config["trainer"].get("grad_norm_clip", None) is not None:
-            clip_grad_norm_(
-                self.model.parameters(), self.config["trainer"]["grad_norm_clip"]
-            )
+            if mode == "generator":
+                clip_grad_norm_(
+                    self.model.generator.parameters(), self.config["trainer"]["grad_norm_clip"]
+                )
+            else:
+                clip_grad_norm_(
+                    itertools.chain(self.model.msd.parameters(), self.model.mpd.parameters()),
+                    self.config["trainer"]["grad_norm_clip"]
+                )
 
     def _train_epoch(self, epoch):
         """
@@ -128,7 +138,7 @@ class Trainer(BaseTrainer):
                     )
                 )
                 self.writer.add_scalar(
-                    "learning rate", self.lr_scheduler.get_last_lr()[0]
+                    "learning rate", self.generator_lr_scheduler.get_last_lr()[0],
                 )
                 # self._log_predictions(**batch)
                 # self._log_spectrogram(batch["spectrogram"])
@@ -151,20 +161,34 @@ class Trainer(BaseTrainer):
     def process_batch(self, batch, is_train: bool, metrics: MetricTracker):
         batch = self.move_batch_to_device(batch, self.device)
         if is_train:
-            self.optimizer.zero_grad()
-        outputs = self.model(**batch)
-        if type(outputs) is dict:
-            batch.update(outputs)
-        else:
-            batch["audio_generated"] = outputs
+            self.discriminator_optimizer.zero_grad()
+            self.generator_optimizer.zero_grad()
+            outputs = self.model(**batch)
+            if type(outputs) is dict:
+                batch.update(outputs)
+            else:
+                batch["audio_generated"] = outputs
 
-        batch["loss"] = self.criterion(**batch)
-        if is_train:
-            batch["loss"]["total_loss"].backward()
-            self._clip_grad_norm()
-            self.optimizer.step()
-            if self.lr_scheduler is not None:
-                self.lr_scheduler.step()
+            batch["loss"] = self.criterion(**batch)
+            batch["loss"]["total_discriminator_loss"].backward()
+            self._clip_grad_norm("discriminator")
+            self.discriminator_optimizer.step()
+            if self.discriminator_lr_scheduler is not None:
+                self.discriminator_lr_scheduler.step()
+
+            batch["loss"]["total_generator_loss"].backward()
+            self._clip_grad_norm("generator")
+            self.generator_optimizer.step()
+            if self.generator_lr_scheduler is not None:
+                self.generator_lr_scheduler.step()
+        else:
+            outputs = self.model(**batch)
+            if type(outputs) is dict:
+                batch.update(outputs)
+            else:
+                batch["audio_generated"] = outputs
+
+            batch["loss"] = self.criterion(**batch)
 
         for name in LOSS_NAMES:
             metrics.update(name, batch["loss"][name].item())

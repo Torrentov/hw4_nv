@@ -1,6 +1,8 @@
 import argparse
 import collections
 import warnings
+import itertools
+import random
 
 import numpy as np
 import torch
@@ -16,11 +18,12 @@ from hw_nv.utils.parse_config import ConfigParser
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # fix random seeds for reproducibility
-SEED = 123
+SEED = 42
 torch.manual_seed(SEED)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 np.random.seed(SEED)
+random.seed(SEED)
 
 
 def main(config):
@@ -49,19 +52,28 @@ def main(config):
 
     # build optimizer, learning rate scheduler. delete every line containing lr_scheduler for
     # disabling scheduler
-    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = config.init_obj(config["optimizer"], torch.optim, trainable_params)
-    lr_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, optimizer)
+    generator_params = filter(lambda p: p.requires_grad, model.generator.parameters())
+    mpd_params = filter(lambda p: p.requires_grad, model.mpd.parameters())
+    msd_params = filter(lambda p: p.requires_grad, model.msd.parameters())
+
+    generator_optimizer = config.init_obj(config["optimizer"], torch.optim, generator_params)
+    discriminator_optimizer = config.init_obj(config["optimizer"], torch.optim, itertools.chain(msd_params, mpd_params))
+
+    generator_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, generator_optimizer)
+    discriminator_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, discriminator_optimizer)
+
 
     trainer = Trainer(
         model,
         loss_module,
         metrics,
-        optimizer,
+        generator_optimizer,
+        discriminator_optimizer,
         config=config,
         device=device,
         dataloaders=dataloaders,
-        lr_scheduler=lr_scheduler,
+        generator_lr_scheduler=generator_scheduler,
+        disctiminator_lr_scheduler=discriminator_scheduler,
         len_epoch=config["trainer"].get("len_epoch", None)
     )
 

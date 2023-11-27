@@ -66,9 +66,11 @@
     }
   },
   "optimizer": {
-    "type": "SGD",
+    "type": "AdamW",
     "args": {
-      "lr": 1e-2
+      "lr": 2e-4,
+      "betas": [0.8, 0.99],
+      "weight_decay": 0.01
     }
   },
   "loss": {
@@ -77,13 +79,9 @@
   },
   "metrics": [],
   "lr_scheduler": {
-    "type": "OneCycleLR",
+    "type": "ExponentialLR",
     "args": {
-      "steps_per_epoch": 100,
-      "epochs": 51,
-      "anneal_strategy": "cos",
-      "max_lr": 1e-2,
-      "pct_start": 0.2
+      "gamma": 0.999
     }
   },
   "trainer": {
