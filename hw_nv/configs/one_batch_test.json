@@ -51,6 +51,18 @@
           }
         }
       ]
+    },
+    "test": {
+      "batch_size": 1,
+      "num_workers": 0,
+      "datasets": [
+        {
+          "type": "CustomDirAudioDataset",
+          "args": {
+            "audio_dir": "data/datasets/test_wavs"
+          }
+        }
+      ]
     }
   },
   "optimizer": {

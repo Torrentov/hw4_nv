@@ -5,6 +5,7 @@ from pathlib import Path
 
 import torch
 from tqdm import tqdm
+import torchaudio
 
 import hw_nv.model as module_model
 from hw_nv.trainer import Trainer
@@ -15,20 +16,17 @@ from hw_nv.utils.parse_config import ConfigParser
 DEFAULT_CHECKPOINT_PATH = ROOT_PATH / "default_test_model" / "checkpoint.pth"
 
 
-def main(config, out_file):
+def main(config, out_dir):
     logger = config.get_logger("test")
 
     # define cpu or gpu if possible
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # text_encoder
-    text_encoder = config.get_text_encoder()
-
     # setup data_loader instances
-    dataloaders = get_dataloaders(config, text_encoder)
+    dataloaders = get_dataloaders(config)
 
     # build model architecture
-    model = config.init_obj(config["arch"], module_model, n_class=len(text_encoder))
+    model = config.init_obj(config["arch"], module_model)
     logger.info(model)
 
     logger.info("Loading checkpoint: {} ...".format(config.resume))
@@ -42,8 +40,6 @@ def main(config, out_file):
     model = model.to(device)
     model.eval()
 
-    results = []
-
     with torch.no_grad():
         for batch_num, batch in enumerate(tqdm(dataloaders["test"])):
             batch = Trainer.move_batch_to_device(batch, device)
@@ -51,27 +47,12 @@ def main(config, out_file):
             if type(output) is dict:
                 batch.update(output)
             else:
-                batch["logits"] = output
-            batch["log_probs"] = torch.log_softmax(batch["logits"], dim=-1)
-            batch["log_probs_length"] = model.transform_input_lengths(
-                batch["spectrogram_length"]
-            )
-            batch["probs"] = batch["log_probs"].exp().cpu()
-            batch["argmax"] = batch["probs"].argmax(-1)
-            for i in range(len(batch["text"])):
-                argmax = batch["argmax"][i]
-                argmax = argmax[: int(batch["log_probs_length"][i])]
-                results.append(
-                    {
-                        "ground_trurh": batch["text"][i],
-                        "pred_text_argmax": text_encoder.ctc_decode(argmax.cpu().numpy()),
-                        "pred_text_beam_search": text_encoder.ctc_beam_search(
-                            batch["probs"][i], batch["log_probs_length"][i], beam_size=100
-                        )[:10],
-                    }
-                )
-    with Path(out_file).open("w") as f:
-        json.dump(results, f, indent=2)
+                batch["audio_generated"] = output
+            batch["audio_generated"] = batch["audio_generated"].squeeze(0)
+            torchaudio.save(out_dir + str(batch_num) + ".wav",
+                            src=batch["audio_generated"],
+                            sample_rate=22050)
+
 
 
 if __name__ == "__main__":
@@ -100,9 +81,9 @@ if __name__ == "__main__":
     args.add_argument(
         "-o",
         "--output",
-        default="output.json",
+        default="results/",
         type=str,
-        help="File to write results (.json)",
+        help="Folder to write results",
     )
     args.add_argument(
         "-t",
@@ -114,7 +95,7 @@ if __name__ == "__main__":
     args.add_argument(
         "-b",
         "--batch-size",
-        default=20,
+        default=1,
         type=int,
         help="Test dataset batch size",
     )
@@ -169,4 +150,8 @@ if __name__ == "__main__":
     config["data"]["test"]["batch_size"] = args.batch_size
     config["data"]["test"]["n_jobs"] = args.jobs
 
+    args.output = "test_results/" + args.output
+
+    if not os.path.exists(args.output):
+        os.mkdir(args.output)
     main(config, args.output)

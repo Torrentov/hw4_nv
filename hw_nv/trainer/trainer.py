@@ -133,6 +133,7 @@ class Trainer(BaseTrainer):
                 # self._log_predictions(**batch)
                 # self._log_spectrogram(batch["spectrogram"])
                 self._log_scalars(self.train_metrics)
+                self._log_audio(batch)
                 # we don't want to reset train metrics at the start of every epoch
                 # because we are interested in recent train metrics
                 last_train_metrics = self.train_metrics.result()
@@ -155,7 +156,7 @@ class Trainer(BaseTrainer):
         if type(outputs) is dict:
             batch.update(outputs)
         else:
-            batch["audio_gen"] = outputs
+            batch["audio_generated"] = outputs
 
         batch["loss"] = self.criterion(**batch)
         if is_train:
@@ -193,6 +194,7 @@ class Trainer(BaseTrainer):
                 )
             self.writer.set_step(epoch * self.len_epoch, part)
             self._log_scalars(self.evaluation_metrics)
+            self._log_audio(batch)
             # self._log_predictions(**batch)
             # self._log_spectrogram(batch["spectrogram"])
 
@@ -272,3 +274,9 @@ class Trainer(BaseTrainer):
             return
         for metric_name in metric_tracker.keys():
             self.writer.add_scalar(f"{metric_name}", metric_tracker.avg(metric_name))
+
+    def _log_audio(self, batch):
+        the_chosen_one = random.randint(0, batch['audio']['mix'].shape[0] - 1)
+
+        self.writer.add_audio('audio_generated', batch['audio_generated'][the_chosen_one, :, :], sample_rate=22050)
+        self.writer.add_audio('audio_gt', batch['audio_gt'][the_chosen_one, :, :], sample_rate=22050)

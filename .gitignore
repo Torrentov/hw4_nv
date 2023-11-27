@@ -101,7 +101,7 @@ ENV/
 .mypy_cache/
 
 # input data, saved log, checkpoints
-data/
+data/datasets/ljspeech
 input/
 saved/
 wandb/
@@ -113,3 +113,5 @@ __MACOSX/
 
 .DS_STORE
 test_data/
+
+test_results/

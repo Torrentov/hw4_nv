@@ -208,7 +208,7 @@ class HiFiGAN(BaseModel):
     def forward(self, mel, audio_gt=None, **batch):
         audio_gen = self.generator(mel)
         if audio_gt is None:
-            return {"audio_gen": audio_gen}
+            return {"audio_generated": audio_gen}
         if audio_gen.size(2) > audio_gt.size(2):
             padding_size = audio_gen.size(2) - audio_gt.size(2)
             audio_gt = F.pad(audio_gt, (0, padding_size))

@@ -3,11 +3,15 @@ from pathlib import Path
 
 from hw_nv.datasets.custom_audio_dataset import CustomAudioDataset
 
+from hw_nv.utils import ROOT_PATH
+
 logger = logging.getLogger(__name__)
 
 
 class CustomDirAudioDataset(CustomAudioDataset):
     def __init__(self, audio_dir, transcription_dir=None, *args, **kwargs):
+        if audio_dir[0] != '/' and audio_dir[0] != '\\':
+            audio_dir = ROOT_PATH / audio_dir
         data = []
         for path in Path(audio_dir).iterdir():
             entry = {}
