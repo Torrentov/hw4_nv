@@ -151,6 +151,10 @@ class Trainer(BaseTrainer):
                 self.train_metrics.reset()
             if batch_idx >= self.len_epoch:
                 break
+        if self.discriminator_lr_scheduler is not None:
+            self.discriminator_lr_scheduler.step()
+        if self.generator_lr_scheduler is not None:
+            self.generator_lr_scheduler.step()
         log = last_train_metrics
 
         for part, dataloader in self.evaluation_dataloaders.items():
@@ -171,8 +175,6 @@ class Trainer(BaseTrainer):
             batch["discriminator_loss"]["discriminator_loss"].backward()
             self._clip_grad_norm("discriminator")
             self.discriminator_optimizer.step()
-            if self.discriminator_lr_scheduler is not None:
-                self.discriminator_lr_scheduler.step()
 
             self.generator_optimizer.zero_grad()
             outputs = self.model.forward_discriminator(**batch)
@@ -181,8 +183,6 @@ class Trainer(BaseTrainer):
             batch["generator_loss"]["generator_loss"].backward()
             self._clip_grad_norm("generator")
             self.generator_optimizer.step()
-            if self.generator_lr_scheduler is not None:
-                self.generator_lr_scheduler.step()
         else:
             outputs = self.model.forward_discriminator(save_data=True, **batch)
             batch.update(outputs)
