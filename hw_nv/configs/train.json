@@ -1,5 +1,5 @@
 {
-  "name": "one_batch_test",
+  "name": "train",
   "n_gpu": 1,
   "preprocessing": {
     "sr": 22050,
@@ -45,8 +45,7 @@
           "type": "LJspeechDataset",
           "args": {
             "part": "test",
-            "max_audio_length": 20.0,
-            "limit": 10
+            "limit": 100
           }
         }
       ]
@@ -78,15 +77,16 @@
   },
   "metrics": [],
   "lr_scheduler": {
-    "type": "ExponentialLR",
+    "type": "CosineAnnealingWarmRestarts",
     "args": {
-      "gamma": 0.99
+      "T_0": 5000,
+      "T_mult": 1
     }
   },
   "trainer": {
-    "epochs": 5002,
+    "epochs": 101,
     "save_dir": "saved/",
-    "save_period": 10,
+    "save_period": 5,
     "verbosity": 2,
     "monitor": "min val_total_loss",
     "early_stop": 1000000000,

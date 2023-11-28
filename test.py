@@ -83,7 +83,7 @@ if __name__ == "__main__":
     args.add_argument(
         "-o",
         "--output",
-        default="results/",
+        default="results",
         type=str,
         help="Folder to write results",
     )
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     config["data"]["test"]["batch_size"] = args.batch_size
     config["data"]["test"]["n_jobs"] = args.jobs
 
-    args.output = "test_results/" + args.output
+    args.output = "test_results/" + args.output + '/'
 
     if not os.path.exists(args.output):
         os.mkdir(args.output)

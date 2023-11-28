@@ -90,7 +90,7 @@ class SubMPD(nn.Module):
             weight_norm(nn.Conv2d(256, 512, (5, 1), stride=(3, 1), padding=(2, 0))),
             weight_norm(nn.Conv2d(512, 1024, (5, 1), stride=1, padding=(2, 0)))
         ])
-        self.finisher = nn.Conv2d(1024, 1, (3, 1), stride=1, padding=(2, 0))
+        self.finisher = weight_norm(nn.Conv2d(1024, 1, (3, 1), stride=1, padding=(2, 0)))
 
     def forward(self, x):
         features = []
@@ -214,7 +214,7 @@ class HiFiGAN(BaseModel):
         if audio_generated.size(2) > audio_gt.size(2):
             padding_size = audio_generated.size(2) - audio_gt.size(2)
             audio_gt = F.pad(audio_gt, (0, padding_size))
-        if audio_gt.size(2) < audio_generated.size(2):
+        if audio_gt.size(2) > audio_generated.size(2):
             padding_size = audio_gt.size(2) - audio_generated.size(2)
             audio_generated = F.pad(audio_generated, (0, padding_size))
         if save_data:
