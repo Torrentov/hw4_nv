@@ -32,7 +32,7 @@
           "type": "LJspeechDataset",
           "args": {
             "part": "train",
-            "crop_audio_length": 13055
+            "crop_audio_length": 16127
           }
         }
       ]
