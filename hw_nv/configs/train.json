@@ -79,12 +79,12 @@
   "lr_scheduler": {
     "type": "CosineAnnealingWarmRestarts",
     "args": {
-      "T_0": 500,
+      "T_0": 1000,
       "T_mult": 2
     }
   },
   "trainer": {
-    "epochs": 101,
+    "epochs": 5001,
     "save_dir": "saved/",
     "save_period": 5,
     "verbosity": 2,
