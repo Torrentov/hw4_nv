@@ -103,7 +103,6 @@ class SubMPD(nn.Module):
             features.append(x)
         x = self.finisher(x)
         features.append(x)
-        # flatten may be needed
 
         return x, features
 
@@ -159,7 +158,6 @@ class SubMSD(nn.Module):
             features.append(x)
         x = self.finisher(x)
         features.append(x)
-        # flatten may be needed
 
         return x, features
 
